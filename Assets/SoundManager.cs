@@ -145,6 +145,9 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
         }
     }
 
+    [SerializeField]
+    private int numChannel = 16;
+
     [SerializeField] private SoundVolume volume = new SoundVolume();
 
     public SoundVolume Volume
@@ -172,11 +175,9 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
     private Dictionary<string, int> seIndexes = new Dictionary<string, int>();
     private Dictionary<string, int> bgmIndexes = new Dictionary<string, int>();
 
-    private const int cNumChannel = 16;
-
     private Handle bgmHandle = new Handle();
 
-    private AudioSource[] seSources = new AudioSource[cNumChannel];
+    private AudioSource[] seSources;
     private Dictionary<Handle, AudioSource> seHandles = new Dictionary<Handle, AudioSource>();
 
     private const string cSaveMuteKey = "SoundManagerDataMuteKey";
@@ -189,6 +190,7 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
         bgmSource = gameObject.AddComponent<AudioSource>();
         bgmSource.loop = true;
 
+        seSources = new AudioSource[numChannel];
         for (int i = 0; i < seSources.Length; i++)
         {
             seSources[i] = gameObject.AddComponent<AudioSource>();
@@ -420,7 +422,11 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
     {
         DebugLog("PlaySe : " + name);
         int index = GetSeIndex(name);
-        Handle h = seHandles.First(x => (x.Value.clip == seClips[index]) && (x.Key.frame == Time.frameCount)).Key;
+        Handle h = seHandles.FirstOrDefault(x => (x.Value.clip == seClips[index]) && (x.Key.frame == Time.frameCount)).Key;
+        if(h == null)
+        {
+            return null;
+        }
         StartCoroutine(DelayMethod(delay, () => PlaySe(index)));
         return h;
     }

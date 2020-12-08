@@ -7,10 +7,16 @@ public class Demo : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        //OPTIONAL:
         //Replace reading method
-        //Disable "readOnAwake"@SoundManger.cs
+        //Set "readOnAwake = false" in the inspector of SoundManger
         /*
-        SoundManager.Instance.ReadFunction = CustomRead;
+        SoundManager.Instance.ReadFunction = () =>
+        {
+            //your read process here
+            //...
+            Debug.Log("Read process ends.");
+        };
         SoundManager.Instance.Read();
         */
 
@@ -32,12 +38,5 @@ public class Demo : MonoBehaviour
         //Easy version
         this.PlaySe("seTest");
         this.PlaySe("seTest", 3.0f);
-    }
-
-    private void CustomRead()
-    {
-        //your process here...
-        //--
-        Debug.Log("CustomRead ends.");
     }
 }

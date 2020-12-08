@@ -147,6 +147,12 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
 
     [SerializeField]
     private int numChannel = 16;
+    
+    [SerializeField]
+    private bool readVolumeSetting = true;
+    
+    [SerializeField]
+    private string[] targetSeFolders = {"SE"};
 
     [SerializeField] private SoundVolume volume = new SoundVolume();
 
@@ -197,7 +203,20 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
             seHandles[new Handle()] = seSources[i];
         }
 
-        seClips = Resources.LoadAll<AudioClip>("Audio/SE");
+        seClips = new AudioClip[0]; // <= Required initialize to use Concat(Linq).
+        
+        foreach (var folder in targetSeFolders)
+        {
+            var path = "Audio/" + folder;
+            seClips = seClips.Concat(Resources.LoadAll<AudioClip>(path)).ToArray();
+        }
+
+        // check duplications.
+        var duplicates = seClips.GroupBy(audioClip => audioClip.name)
+            .Where(name => name.Count() > 1)
+            .Select(group => group.Key).ToList();
+        Debug.Assert(duplicates.Count == 0, "Detected duplicated file name(s)!");
+
 #if USE_INTRO_LOOP
         introLoopBgms = Resources.LoadAll<IntroloopAudio>("Audio/BGM");
         Debug.Log( "introLoopBgms  : " + introLoopBgms.Length );
@@ -225,7 +244,7 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
         }
 #endif
 
-        Read();
+        if (readVolumeSetting) Read();
         Debug.Log("se volume : " + volume.se);
         Debug.Log("bgm volume : " + volume.bgm);
         /* Debug.Log("se ========================"); */
@@ -427,6 +446,7 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
         {
             return null;
         }
+
         StartCoroutine(DelayMethod(delay, () => PlaySe(index)));
         return h;
     }

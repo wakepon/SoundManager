@@ -446,7 +446,6 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
         {
             return null;
         }
-
         StartCoroutine(DelayMethod(delay, () => PlaySe(index)));
         return h;
     }

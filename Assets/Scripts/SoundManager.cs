@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections;
 using System;
 using System.Linq;
+using UnityEngine.Serialization;
 
 public class BgmDefine
 {
@@ -149,15 +150,18 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
     private int numChannel = 16;
     
     [SerializeField]
-    private bool readOnAwake = true;
+    private bool loadSettingsOnAwake = true;
     
     [SerializeField]
     private string[] targetSeFolders = {"SE"};
+    
+    [SerializeField]
+    private string[] targetBgmFolders = {"BGM"};
 
     [SerializeField] private SoundVolume volume = new SoundVolume();
 
-    public Action ReadFunction;
-    public Action SaveFunction;
+    public Action LoadSettingsFunction;
+    public Action SaveSettingsFunction;
 
     public SoundVolume Volume
     {
@@ -196,8 +200,8 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
     //------------------------------------------------------------------------------
     protected override void doAwake()
     {
-        ReadFunction = () => DefaultRead();
-        SaveFunction = () => DefaultSave();
+        LoadSettingsFunction = () => DefaultLoadSettings();
+        SaveSettingsFunction = () => DefaultSaveSettings();
         
         bgmSource = gameObject.AddComponent<AudioSource>();
         bgmSource.loop = true;
@@ -217,19 +221,28 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
             seClips = seClips.Concat(Resources.LoadAll<AudioClip>(path)).ToArray();
         }
 
-        // check duplications.
-        var duplicates = seClips.GroupBy(audioClip => audioClip.name)
-            .Where(name => name.Count() > 1)
-            .Select(group => group.Key).ToList();
-        Debug.Assert(duplicates.Count == 0, "Detected duplicated file name(s)!");
+        Debug.Assert(!checkDuplications(seClips), "Detected duplicated file name(s)!");
 
 #if USE_INTRO_LOOP
-        introLoopBgms = Resources.LoadAll<IntroloopAudio>("Audio/BGM");
+        introLoopBgms = new IntroloopAudio[0];
+        foreach (var folder in targetBgmFolders)
+        {
+            var path = "Audio/" + folder;
+            introLoopBgms = introLoopBgms.Concat(Resources.LoadAll<IntroloopAudio>(path)).ToArray();
+        }
+
         Debug.Log( "introLoopBgms  : " + introLoopBgms.Length );
 #else
         bgmSource = gameObject.AddComponent<AudioSource>();
         bgmSource.loop = true;
-        bgmClips = Resources.LoadAll<AudioClip>("Audio/BGM");
+        bgmClips = new AudioClip[0]; // <= Required initialize to use Concat(Linq).
+        foreach (var folder in targetBgmFolders)
+        {
+            var path = "Audio/" + folder;
+            bgmClips = bgmClips.Concat(Resources.LoadAll<AudioClip>(path)).ToArray();
+        }
+        
+        Debug.Assert(!checkDuplications(bgmClips), "Detected duplicated file name(s)!");
 #endif
 
         for (int i = 0; i < seClips.Length; ++i)
@@ -250,7 +263,7 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
         }
 #endif
 
-        if (readOnAwake) Read();
+        if (loadSettingsOnAwake) LoadSettings();
         
         /* Debug.Log("se ========================"); */
         /* foreach(var ac in seClips ) { Debug.Log( ac.name ); } */
@@ -337,10 +350,10 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
     //------------------------------------------------------------------------------
     public void Save()
     {
-        SaveFunction();
+        SaveSettingsFunction();
     }
 
-    public void DefaultSave()
+    public void DefaultSaveSettings()
     {
         PlayerPrefs.SetInt(cSaveMuteKey, volume.mute ? 1 : 0);
         PlayerPrefs.SetFloat(cSaveSeVolumeKey, volume.se);
@@ -348,14 +361,13 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
     }
 
     //------------------------------------------------------------------------------
-    public void Read()
+    public void LoadSettings()
     {
-        ReadFunction();
-        Debug.Log("se volume : " + volume.se);
-        Debug.Log("bgm volume : " + volume.bgm);
+        LoadSettingsFunction();
+        Debug.Log("bgm volume : " + volume.bgm + ", se volume : " + volume.se);
     }
     
-    public void DefaultRead()
+    public void DefaultLoadSettings()
     {
         volume.mute = PlayerPrefs.GetInt(cSaveMuteKey, 0) == 1;
         volume.se = PlayerPrefs.GetFloat(cSaveSeVolumeKey, 1.0f);
@@ -564,10 +576,22 @@ public class SoundManager : SingletonMonoBehaviour<SoundManager>
     {
         return seHandles[handle];
     }
+    
+    //------------------------------------------------------------------------------
+    private bool checkDuplications(AudioClip[] clips)
+    {
+        var duplicates = clips.GroupBy(audioClip => audioClip.name)
+            .Where(name => name.Count() > 1)
+            .Select(group => group.Key).ToList();
+        return duplicates.Count != 0;
+    }
 
+    //------------------------------------------------------------------------------
     private IEnumerator DelayMethod(float wait_time, Action action)
     {
         yield return new WaitForSeconds(wait_time);
         action();
     }
+    
+    
 }

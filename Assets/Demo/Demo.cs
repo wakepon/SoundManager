@@ -7,6 +7,19 @@ public class Demo : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        //OPTIONAL:
+        //Replace reading method
+        //Set "readOnAwake = false" in the inspector of SoundManger
+        /*
+        SoundManager.Instance.ReadFunction = () =>
+        {
+            //your read process here
+            //...
+            Debug.Log("Read process ends.");
+        };
+        SoundManager.Instance.Read();
+        */
+
         //Play BGM
         var bgm_handle = SoundManager.Instance.PlayBgm( "bgmTest" );
         
